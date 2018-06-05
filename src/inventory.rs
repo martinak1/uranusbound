@@ -30,6 +30,7 @@ impl Inventory {
         }
     }
 
+    #[test]
     pub fn test_inventory() {
         /// Tests the funcitonality of the inventory system
         //******************************************************************************

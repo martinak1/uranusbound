@@ -4,13 +4,12 @@ version = "0.1.0"
 authors = ["martinak1 <martinak@mymail.vcu.edu>"]
 
 [dependencies]
-piston_window = "0.79.0"
 find_folder = "0.3.0"
-piston-ai_behavior = "0.23.0"
-piston2d-sprite = "0.44.0"
-image = "0.19.0"
-gfx = "0.17.1"
 piston = "0.37.0"
-
-[dependencies.pistoncore-sdl2_window]
-git = "https://github.com/PistonDevelopers/sdl2_window"
+pistoncore-glutin_window = "0.47.0"
+piston-texture = "0.6.0"
+piston2d-graphics = "0.26.0"
+tiled = "0.7.4"
+piston2d-glium_graphics = "0.50.0"
+serde_json = "1.0.19"
+glium = "0.21.0"
