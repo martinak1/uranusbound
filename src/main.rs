@@ -12,13 +12,19 @@ use glium_graphics::{Flip, Glium2d, GliumWindow, OpenGL, Texture, TextureSetting
 use graphics::*;
 
 use piston::event_loop::EventLoop;
-use piston::input::RenderEvent;
+use piston::input::{Button, CloseEvent, Key, PressEvent, RenderEvent};
 use piston::window::WindowSettings;
 
-struct Camera {
-    // in pixels
+struct Pc {
+    // x and y coordinets for determining the location on the map
     pos_x: i32,
     pos_y: i32,
+
+    // map borders
+    x_max: i32,
+    x_min: i32,
+    y_max: i32,
+    y_min: i32,
 }
 
 fn main() {
@@ -47,7 +53,7 @@ fn main() {
     let tilesheet =
         Texture::from_path(window, &tilesheet, Flip::None, &TextureSettings::new()).unwrap();
 
-    let (width, _) = tilesheet.get_size();
+    let (xMax, yMax) = tilesheet.get_size();
 
     let layer: &tiled::Layer = &map.layers[0];
 
@@ -55,8 +61,18 @@ fn main() {
 
     window.set_lazy(false);
 
+    let mut pc = Pc {
+        pos_x: 200,
+        pos_y: 200,
+        x_max: xMax as i32,
+        x_min: 0,
+        y_max: yMax as i32,
+        y_min: 0,
+    };
+
     // event loop
-    while let Some(event) = window.next() {
+    'game_loop: while let Some(event) = window.next() {
+        // render event
         if let Some(args) = event.render_args() {
             let mut target = window.draw();
             g2d.draw(&mut target, args.viewport(), |context, gl| {
@@ -72,8 +88,8 @@ fn main() {
 
                         // rect of the particular tile in the tilesheet
                         let map_rect = [
-                            (tile % (width / tile_width) * tile_width) as f64,
-                            (tile / (width / tile_height) * tile_height) as f64,
+                            (tile % (xMax / tile_width) * tile_width) as f64,
+                            (tile / (xMax / tile_height) * tile_height) as f64,
                             tile_width as f64,
                             tile_height as f64,
                         ];
@@ -83,14 +99,19 @@ fn main() {
                             .transform
                             .trans(x as f64 * tile_width as f64, y as f64 * tile_height as f64);
 
-                        // draws everything to the buffer
-
+                        // get the dimensions so the render area scales with
+                        // window size
                         let (win_width, win_height) = window.get_max_viewport_dimensions();
 
                         // this line is how I got the camera to work
                         map.src_rect(map_rect).draw(
                             &tilesheet,
-                            &DrawState::default().scissor([0, 0, win_width, win_height]),
+                            &DrawState::default().scissor([
+                                pc.pos_x as u32,
+                                pc.pos_y as u32,
+                                win_width,
+                                win_height,
+                            ]),
                             trans,
                             gl,
                         );
@@ -99,6 +120,51 @@ fn main() {
             });
             // swaps the back buffer with the front buffer consuming the frame
             target.finish().unwrap();
+        }
+
+        if let Some(button) = event.press_args() {
+            if let Button::Keyboard(key) = button {
+                match key {
+                    Key::A | Key::Left => {
+                        let temp_pos = pc.pos_x - 16;
+                        if temp_pos > pc.x_min {
+                            pc.pos_x = temp_pos;
+                        } else {
+                            pc.pos_x = pc.x_min;
+                        }
+                    }
+                    Key::D | Key::Right => {
+                        let temp_pos = pc.pos_x + 16;
+                        if temp_pos < pc.x_max {
+                            pc.pos_x = temp_pos;
+                        }
+                    }
+                    Key::W | Key::Up => {
+                        let temp_pos = pc.pos_y + 16;
+                        if temp_pos < pc.y_max {
+                            pc.pos_y = temp_pos;
+                        } else {
+                            pc.pos_y = pc.y_max;
+                        }
+                    }
+                    Key::S | Key::Down => {
+                        let temp_pos = pc.pos_y - 16;
+                        if temp_pos > pc.y_min {
+                            pc.pos_y = temp_pos;
+                        } else {
+                            pc.pos_y = temp_pos;
+                        }
+                    }
+                    _ => (),
+                }
+            } else {
+                ()
+            }
+        }
+
+        if let Some(_) = event.close_args() {
+            println!("Game window was closed. Exiting!");
+            break 'game_loop;
         }
     }
 }
