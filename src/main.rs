@@ -32,7 +32,7 @@ struct SubMap {
 
 fn main() {
     let opengl = OpenGL::V3_2;
-    let (w, h) = (480, 480);
+    let (w, h) = (800, 800);
 
     let assets = find_folder::Search::ParentsThenKids(3, 3)
         .for_folder("assets")
@@ -77,8 +77,8 @@ fn main() {
 
     // maintains the SubImage of the map and its coordinets
     let mut sub_map = SubMap {
-        pos_x: 160, // will be dynamic later
-        pos_y: 160, // will be dynamic later
+        pos_x: 0, // will be dynamic later
+        pos_y: 0, // will be dynamic later
         x_max: map_x_max as i32,
         y_max: map_y_max as i32,
     };
@@ -92,14 +92,16 @@ fn main() {
             // get the dimensions so the render area scales with
             // window size
             let (win_width, win_height) = window.get_max_viewport_dimensions();
+            //let tile_buff = vec![];
 
             g2d.draw(&mut target, args.viewport(), |context, frame| {
                 clear(color::BLACK, frame);
 
-                //let mut rects = vec![];
-
-                for (y, row) in layer.tiles.iter().enumerate().clone() {
+                // iter through rows of map texture
+                for (y, row) in layer.tiles.iter().enumerate() {
+                    // iter through columns of map texture
                     for (x, &tile) in row.iter().enumerate() {
+                        // skip if tile is zero, we need to be one ahead of it
                         if tile == 0 {
                             continue;
                         }
@@ -126,12 +128,13 @@ fn main() {
                             x as i32 * tile_width as i32,
                             y as i32 * tile_height as i32,
                         ) {
-                            //println!("Tile at {} x {} should be drawn to screen", x, y);
                             // Converts to the cartesian plane
-                            let trans = context
-                                .transform
-                                .trans(x as f64 * tile_width as f64, y as f64 * tile_height as f64);
+                            let trans = context.transform.trans(
+                                x as f64 * tile_width as f64 - sub_map.pos_x as f64,
+                                y as f64 * tile_height as f64 - sub_map.pos_y as f64,
+                            );
 
+                            //tile_buff.push()
                             map_img.src_rect(tile_rect).draw(
                                 &tilesheet,
                                 &DrawState::default(),
@@ -151,7 +154,7 @@ fn main() {
                 match key {
                     Key::A | Key::Left => {
                         let temp_pos = sub_map.pos_x - 16;
-                        if temp_pos > 0 {
+                        if temp_pos >= 0 {
                             sub_map.pos_x = temp_pos;
                         } else {
                             sub_map.pos_x = 0;
@@ -159,24 +162,26 @@ fn main() {
                     }
                     Key::D | Key::Right => {
                         let temp_pos = sub_map.pos_x + 16;
-                        if temp_pos < sub_map.x_max {
+                        if temp_pos <= sub_map.x_max {
                             sub_map.pos_x = temp_pos;
+                        } else {
+                            sub_map.pos_x = sub_map.x_max;
                         }
                     }
                     Key::W | Key::Up => {
                         let temp_pos = sub_map.pos_y - 16;
-                        if temp_pos < sub_map.y_max {
+                        if 0 <= temp_pos {
                             sub_map.pos_y = temp_pos;
                         } else {
-                            sub_map.pos_y = sub_map.y_max;
+                            sub_map.pos_y = 0;
                         }
                     }
                     Key::S | Key::Down => {
                         let temp_pos = sub_map.pos_y + 16;
-                        if temp_pos > 0 {
+                        if temp_pos <= sub_map.y_max {
                             sub_map.pos_y = temp_pos;
                         } else {
-                            sub_map.pos_y = 0;
+                            sub_map.pos_y = sub_map.y_max;
                         }
                     }
                     _ => (),
