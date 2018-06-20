@@ -11,6 +11,7 @@ extern crate image;
 
 // for creating the window, textures, and rendering
 use glium_graphics::{Flip, Glium2d, GliumWindow, OpenGL, Texture, TextureSettings};
+use graphics::Transformed;
 use piston::window::WindowSettings;
 
 // for convenience
@@ -37,6 +38,8 @@ fn main() {
         .for_folder("assets")
         .unwrap();
 
+    println!("{:?}", &assets);
+
     // this is also the factory
     let ref mut window: GliumWindow = WindowSettings::new("Uranusbound", [w, h])
         .exit_on_esc(true)
@@ -49,14 +52,9 @@ fn main() {
 
     let mut g2d = Glium2d::new(opengl, window);
 
-    let mut map = Map::new()
-        .map(&assets.join("better_map.tmx"))
-        .tileset()
-        .tile_width()
-        .tile_height()
-        .tile_sheet(&window);
+    let map = Map::load(assets.join("rofl_map.tmx"), window);
 
-/*     let map: Map = {
+    /*     let map: Map = {
         let map = parse_file(&assets.join("better_map.tmx")).unwrap();
 
         let tileset = map.get_tileset_by_gid(1).unwrap();
@@ -86,10 +84,9 @@ fn main() {
     //let map_img = image::open(&tilesheet).unwrap();
 
     //let tilesheet =
-        //Texture::from_image(window, &map_img.to_rgba(), &TextureSettings::new()).unwrap();
+    //Texture::from_image(window, &map_img.to_rgba(), &TextureSettings::new()).unwrap();
 
     //let (map_x_max, map_y_max) = map.get_tilesheet().get_size();
-
 
     //let map_img = piston_graphics::Image::new();
 
@@ -97,22 +94,16 @@ fn main() {
 
     // maintains the SubImage of the map and its coordinates
     //let mut sub_map = SubMap {
-        //pos_x: 0, // will be dynamic later
-        //pos_y: 0, // will be dynamic later
-        //x_max: win_width as i32,
-        //y_max: win_height as i32,
+    //pos_x: 0, // will be dynamic later
+    //pos_y: 0, // will be dynamic later
+    //x_max: win_width as i32,
+    //y_max: win_height as i32,
     //};
 
     //let layer: &tiled::Layer = &map.layers[0];
 
-    let mut camera: Camera = Camera::new()
-        .width(win_width as i32)
-        .height(win_height as i32)
-        .x_max()
-        .y_max()
-        .tile_buffer_auto_reserve();
-
-    
+    let ref mut camera = Camera::load(80, 80, win_width as i32, win_height as i32);
+    camera.tile_buffer_auto_reserve();
 
     // event loop
     'game_loop: while let Some(event) = window.next() {
@@ -124,99 +115,89 @@ fn main() {
             // window size
 
             g2d.draw(&mut target, args.viewport(), |context, frame| {
-                //clear(color::BLACK, frame);
-
-                let cam_pos_x = camera.get_pos_x();
-                let cam_pos_y = camera.get_pos_y();
-
                 // iter through rows of map texture
-                for (y, row) in map.get_map().layers[0].tiles.iter().enumerate() {
+
+                let (c_x, c_y, c_x_max, c_y_max) = camera.get_rect();
+
+                for (y, row) in map.get_map().layers[0]
+                    .tiles
+                    .iter()
+                    .enumerate()
+                    .skip_while(|(y, _)| c_y <= *y as i32 && *y as i32 <= c_y_max)
+                {
+                    //for (y, row) in map.get_map().layers[0].tiles.iter().enumerate() {
 
                     // bounds checking
-                    match y {
-                        0 .. camera.get_pos_y() => continue,
-                        _ => break,
-                        camera.get_pos_y() ..= camera.get_y_max() => {
-                            // iter through columns of map texture
-                            for (x, &tile) in row.iter().enumerate() {
+                    // iter through columns of map texture
+                    for (x, &tile) in row
+                        .iter()
+                        .enumerate()
+                        .skip_while(|(x, _)| c_x <= *x as i32 && *x as i32 <= c_x_max)
+                    {
+                        // skip if tile is zero, we need to be one ahead of it
+                        if tile == 0 {
+                            continue;
+                        }
 
+                        let tile = tile - 1; // tiled counts from 1
 
-                                match x {
-                                    0 .. camera.get_pos_x() => continue,
-                                    _ => break, 
-                                    camera.get_pos_x() ..= camera.get_y_max() => {
-                           
-                                        // skip if tile is zero, we need to be one ahead of it
-                                    if tile == 0 {
-                                        continue;
-                                    }
-
-                                    let tile = tile - 1; // tiled counts from 1
-
-                                    /*  of the particular tile in the tilesheet
+                        /*  of the particular tile in the tilesheet
                                         tile = tile index x_max is the width of the screen 
                                         y_max is the height of the screen
                                     */
 
-                                    let src_rect = [
-                                        (tile % (camera.get_x_max() / map.get_tile_width()) * map.get_tile_width()) as f64, // x coordinate
-                                        (tile / (camera.get_y_max() / map.get_tile_height()) * map.get_tile_height()) as f64, // y coordinate
-                                        map.get_tile_width() as f64,
-                                        map.get_tile_height() as f64,
-                                    ];
+                        let src_rect = [
+                            (tile as i32 % (camera.get_x_max() / map.get_tile_width())
+                                * map.get_tile_width()) as f64, // x coordinate
+                            (tile as i32 / (camera.get_y_max() / map.get_tile_height())
+                                * map.get_tile_height()) as f64, // y coordinate
+                            map.get_tile_width() as f64,
+                            map.get_tile_height() as f64,
+                        ];
 
-                                    let rect = [
-                                        x as f64 * map.get_tile_width() as f64 - camera.get_pos_x() as f64,
-                                        y as f64 * map.get_tile_height() as f64 - camera.get_pos_y() as f64,
-                                        map.get_tile_width() as f64,
-                                        map.get_tile_height() as f64
-                                    ];
+                        let rect = [
+                            x as f64 * map.get_tile_width() as f64 - camera.get_x() as f64,
+                            y as f64 * map.get_tile_height() as f64 - camera.get_y() as f64,
+                            map.get_tile_width() as f64,
+                            map.get_tile_height() as f64,
+                        ];
 
-                                    tile_buffer.push((rect, src_rect));
+                        //camera.push_to_tile_buffer(rect, src_rect);
 
-/*
                         // Converts to the cartesian plane
                         let trans = context.transform.trans(
-                            x as f64 * tile_width as f64 - sub_map.pos_x as f64,
-                            y as f64 * tile_height as f64 - sub_map.pos_y as f64,
+                            x as f64 * map.get_tile_width() as f64 - camera.get_x() as f64,
+                            y as f64 * map.get_tile_height() as f64 - camera.get_y() as f64,
                         );
 
-                        map_img.src_rect(tile_rect).draw(
-                            &tilesheet,
-                            &DrawState::default(),
-                            trans,
-                            frame,
-                            );
-*/
-                                    }
-                                }
-                            }
-                        }
+                        piston_graphics::image::Image::new()
+                            .src_rect(src_rect)
+                            .draw(map.get_tile_sheet(), &DrawState::default(), trans, frame);
                     }
                 }
 
                 // Push the tile buffer to the gpu
-                piston_graphics::image::draw_many(
-                    camera.get_tile_buffer().as_slice(), 
+/*                 piston_graphics::image::draw_many(
+                    camera.get_tile_buffer().as_slice(),
                     [0.0, 0.0, 0.0, 0.0],
-                    map.get_tilesheet(), 
-                    &DrawState::default(), 
-                    context.transform, 
-                    frame
-                );
-            });
+                    map.get_tile_sheet(),
+                    &DrawState::default(),
+                    context.transform,
+                    frame,
+                ); */            });
+
             // swaps the back buffer with the front buffer consuming the frame
             target.finish().unwrap();
 
             // cleanup
             camera.clear_tile_buffer();
-        }
+        } // end render event
 
         if let Some(button) = event.press_args() {
             if let Button::Keyboard(key) = button {
                 match key {
                     Key::A | Key::Left => {
-                        let temp_pos = camera.get_pos_x() - 1;
+                        let temp_pos = camera.get_x() - 16;
                         if temp_pos > 0 {
                             camera.pos_x(temp_pos);
                         } else {
@@ -224,15 +205,15 @@ fn main() {
                         }
                     }
                     Key::D | Key::Right => {
-                        let temp_pos = camera.get_pos_x() + 1;
-                        if temp_pos < camera.get_x_max() {
+                        let temp_pos = camera.get_x() + 16;
+                        if temp_pos < camera.get_x() {
                             camera.pos_x(temp_pos);
                         } else {
-                            camera.pos_x(camera.get_x_max());
+                            camera.x_to_max()
                         }
                     }
                     Key::W | Key::Up => {
-                        let temp_pos = camera.get_pos_y() - 1;
+                        let temp_pos = camera.get_y() - 16;
                         if temp_pos > 0 {
                             camera.pos_y(temp_pos);
                         } else {
@@ -240,11 +221,11 @@ fn main() {
                         }
                     }
                     Key::S | Key::Down => {
-                        let temp_pos = camera.get_pos_y() + 1;
+                        let temp_pos = camera.get_y() + 16;
                         if temp_pos <= camera.get_y_max() {
                             camera.pos_y(temp_pos);
                         } else {
-                            camera.pos_y(camera.get_y_max());
+                            camera.y_to_max();
                         }
                     }
                     _ => (),
