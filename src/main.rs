@@ -119,20 +119,15 @@ fn main() {
 
                 let (c_x, c_y, c_x_max, c_y_max) = camera.get_rect();
 
-                for (y, row) in map.get_map().layers[0]
-                    .tiles
-                    .iter()
-                    .enumerate()
-                    .skip_while(|(y, _)| c_y <= *y as i32 && *y as i32 <= c_y_max)
+                for (y, row) in map.get_map().layers[0].tiles.iter().enumerate()
+                //.skip_while(|(y, _)| c_y <= *y as i32 && *y as i32 <= c_y_max)
                 {
                     //for (y, row) in map.get_map().layers[0].tiles.iter().enumerate() {
 
                     // bounds checking
                     // iter through columns of map texture
-                    for (x, &tile) in row
-                        .iter()
-                        .enumerate()
-                        .skip_while(|(x, _)| c_x <= *x as i32 && *x as i32 <= c_x_max)
+                    for (x, &tile) in row.iter().enumerate()
+                    //.skip_while(|(x, _)| c_x <= *x as i32 && *x as i32 <= c_x_max)
                     {
                         // skip if tile is zero, we need to be one ahead of it
                         if tile == 0 {
