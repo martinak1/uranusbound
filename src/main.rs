@@ -22,7 +22,7 @@ use piston_graphics::DrawState;
 
 // for handling events
 use piston::event_loop::EventLoop;
-use piston::input::{Button, CloseEvent, Key, PressEvent, RenderEvent};
+use piston::input::{Button, CloseEvent, Key, PressEvent, RenderEvent, ResizeEvent};
 
 mod camera;
 use camera::Camera;
@@ -105,6 +105,8 @@ fn main() {
     let ref mut camera = Camera::load(80, 80, win_width as i32, win_height as i32);
     camera.tile_buffer_auto_reserve();
 
+    let mut tile_img = piston_graphics::image::Image::new();
+
     // event loop
     'game_loop: while let Some(event) = window.next() {
         // render event
@@ -157,7 +159,7 @@ fn main() {
                             map.get_tile_height() as f64,
                         ];
 
-                        //camera.push_to_tile_buffer(rect, src_rect);
+                        camera.push_to_tile_buffer(rect, src_rect);
 
                         // Converts to the cartesian plane
                         let trans = context.transform.trans(
@@ -165,21 +167,30 @@ fn main() {
                             y as f64 * map.get_tile_height() as f64 - camera.get_y() as f64,
                         );
 
-                        piston_graphics::image::Image::new()
-                            .src_rect(src_rect)
-                            .draw(map.get_tile_sheet(), &DrawState::default(), trans, frame);
+                        //piston_graphics::image::Image::new()
+
+                        /*                         tile_img.src_rect(src_rect).draw(
+                            map.get_tile_sheet(),
+                            &DrawState::default(),
+                            trans,
+                            frame,
+                        );
+                    } */
                     }
                 }
+                let matrix = [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]];
 
                 // Push the tile buffer to the gpu
-/*                 piston_graphics::image::draw_many(
+                piston_graphics::image::draw_many(
                     camera.get_tile_buffer().as_slice(),
-                    [0.0, 0.0, 0.0, 0.0],
+                    [1.0, 0.06, 1.0, 0.0],
                     map.get_tile_sheet(),
                     &DrawState::default(),
-                    context.transform,
+                    //context.transform,
+                    matrix,
                     frame,
-                ); */            });
+                );
+            });
 
             // swaps the back buffer with the front buffer consuming the frame
             target.finish().unwrap();
@@ -228,6 +239,11 @@ fn main() {
             } else {
                 // this covers the mouse events that we will ignore
                 ()
+            }
+        }
+
+        if let Some(size) = event.resize_args() {
+                camera.resize(size[0], size[1]),
             }
         }
 

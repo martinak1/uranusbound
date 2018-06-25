@@ -1,7 +1,13 @@
 //! Represents a camera that keeps track of information regarding what is displayed
+
+use glium::*;
+
+use map::*;
+use std::collections::HashMap;
+
 pub struct Camera {
     // x and y coordinates for determining the location on the map
-    // these are representative of the bottom left corner of the SubImage
+    // these are representative of the bottom left corner of the display
     pos_x: i32,
     pos_y: i32,
     width: i32,
@@ -12,7 +18,8 @@ pub struct Camera {
     y_max: i32,
 
     // buffers
-    tile_buffer: Vec<([f64; 4], [f64; 4])>,
+    tile_buffer: Vec<Tile>,
+    map_buffer: HashMap<String, Map>,
 }
 
 impl Camera {
@@ -41,18 +48,27 @@ impl Camera {
         self.y_max
     }
 
-    pub fn get_tile_buffer(&self) -> &Vec<([f64; 4], [f64; 4])> {
+    pub fn get_tile_buffer(&self) -> &Vec<Tile> {
         &self.tile_buffer
     }
 
-    pub fn get_mut_tile_buffer(&self) -> &Vec<([f64; 4], [f64; 4])> {
-        &self.tile_buffer
+    pub fn get_mut_tile_buffer(&self) -> &Vec<Tile> {
+        &self.tile_buffer.as_mut()
+    }
+
+    pub fn get_map_buffer(&self) -> &HashMap<String, Map> {
+        &self.map_buffer
+    }
+
+    pub fn get_mut_map_buffer(&self) -> &HashMap<String, Map> {
+        &mut self.map_buffer
     }
 
     pub fn get_rect(&self) -> (i32, i32, i32, i32) {
         (self.pos_x, self.pos_y, self.width, self.height)
     }
 
+    /// loads a camera with with no known values
     pub fn new() -> Camera {
         Camera {
             pos_x: 0,
@@ -62,9 +78,11 @@ impl Camera {
             x_max: 0,
             y_max: 0,
             tile_buffer: vec![],
+            map_buffer: HashMap::new(),
         }
     }
 
+    /// loads a camera from already known values
     pub fn load(pos_x: i32, pos_y: i32, width: i32, height: i32) -> Camera {
         let x_max = pos_x + width;
         let y_max = pos_y + height;
@@ -77,6 +95,7 @@ impl Camera {
             x_max,
             y_max,
             tile_buffer: vec![],
+            map_buffer: HashMap::new(),
         }
     }
 }
@@ -139,7 +158,40 @@ impl Camera {
     }
 
     /// Adds a tile to the cameras buffer
-    pub fn push_to_tile_buffer(&mut self, rect: [f64; 4], src_rect: [f64; 4]) {
-        self.tile_buffer.push((rect, src_rect));
+    pub fn push_to_tile_buffer(&mut self, tile: Tile) {
+        self.tile_buffer.push(tile);
+    }
+
+    /// Adds a map to the map_buffer
+    pub fn push_to_map_buffer(&mut self, name: String, map: Map) {
+        self.map_buffer.insert(name, map);
+    }
+
+    pub fn resize(&mut self, w: i32, h: i32) {
+        //self.width(w);
+        //self.height(h);
+
+        self.width(w);
+        self.height(h);
+        self.x_max();
+        self.y_max();
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Tile {
+    tile_rect: [f64; 4],
+    tex_rect: [f64; 2],
+}
+
+implement_vertex!(Tile, tile_rect, tex_rect);
+
+impl Tile {
+    /// Does some math so the coordinates are translated correctly
+    pub fn tex_rect(&mut self, t_width: i32, t_height: i32, x_camera: i32, y_camera: i32) {
+        self.tex_rect = [
+            self.tile_rect[0] * t_width as f64 - x_camera as f64,
+            self.tile_rect[1] * t_height as f64 - y_camera as f64,
+        ];
     }
 }
