@@ -3,8 +3,10 @@
         "factory",
         "glium",
         "graphics",
+        "opengl",
         "rect",
         "resizable",
+        "rgba",
         "tileset",
         "tilesheet",
         "uranusbound"

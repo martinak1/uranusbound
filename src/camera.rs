@@ -52,16 +52,16 @@ impl Camera {
         &self.tile_buffer
     }
 
-    pub fn get_mut_tile_buffer(&self) -> &Vec<Tile> {
-        &self.tile_buffer.as_mut()
+    pub fn get_mut_tile_buffer(&mut self) -> &Vec<Tile> {
+        &self.tile_buffer
     }
 
     pub fn get_map_buffer(&self) -> &HashMap<String, Map> {
         &self.map_buffer
     }
 
-    pub fn get_mut_map_buffer(&self) -> &HashMap<String, Map> {
-        &mut self.map_buffer
+    pub fn get_mut_map_buffer(&mut self) -> &HashMap<String, Map> {
+        &self.map_buffer
     }
 
     pub fn get_rect(&self) -> (i32, i32, i32, i32) {
@@ -133,7 +133,7 @@ impl Camera {
 
     /// clears the tile_buffer
     pub fn clear_tile_buffer(&mut self) {
-        self.tile_buffer.clear();
+        &self.tile_buffer.clear();
     }
 
     /// reserves an estimated amount of space
