@@ -44,13 +44,13 @@ fn main() {
     let ref mut window: GliumWindow = WindowSettings::new("Uranusbound", [w, h])
         .exit_on_esc(true)
         .opengl(opengl)
-        .resizable(true)
+        .resizable(false)
         .build()
         .unwrap();
 
     let mut g2d = Glium2d::new(opengl, window);
 
-    let map = Map::load(assets.join("rofl_map.tmx"), window);
+    let map = Map::load(assets.join("best_map_large.tmx"), window);
 
     let (win_width, win_height) = window.get_max_viewport_dimensions();
 
@@ -78,13 +78,14 @@ fn main() {
                     .tiles
                     .iter()
                     .enumerate()
-                    .skip_while(|(y, _)| c_y <= *y as i32 && *y as i32 <= c_y_max)
+                    .filter(|(y, _)| c_y <= *y as i32 * 16 && *y as i32 * 16 <= c_y_max)
                 {
                     for (x, &tile) in row
                         .iter()
                         .enumerate()
-                        .skip_while(|(x, _)| c_x <= *x as i32 && *x as i32 <= c_x_max)
+                        .filter(|(x, _)| c_x <= *x as i32 * 16 && *x as i32 * 16 <= c_x_max)
                     {
+                        println!("X: {}, Y: {}, Tile: {}", x, y, tile);
                         // skip if tile is zero, we need to be one ahead of it
                         if tile == 0 {
                             continue;
@@ -96,35 +97,20 @@ fn main() {
                             tile = tile index x_max is the width of the screen 
                             y_max is the height of the screen
                         */
-
                         let tex_rect = [
-                            (tile as i32 % (camera.get_x_max() / map.get_tile_width())
+                            (tile as i32 % (map.get_width() / map.get_tile_width())
                                 * map.get_tile_width()) as f64, // x coordinate
-                            (tile as i32 / (camera.get_y_max() / map.get_tile_height())
+                            (tile as i32 / (map.get_width() / map.get_tile_height())
                                 * map.get_tile_height()) as f64, // y coordinate
                             map.get_tile_width() as f64,
                             map.get_tile_height() as f64,
                         ];
-
-                        let tile_rect = [
-                            x as f64 * map.get_tile_width() as f64 - camera.get_x() as f64,
-                            y as f64 * map.get_tile_height() as f64 - camera.get_y() as f64,
-                            map.get_tile_width() as f64,
-                            map.get_tile_height() as f64,
-                        ];
-
-                        //camera.push_to_tile_buffer(Tile {
-                        //tile_rect,
-                        //tex_rect,
-                        //});
 
                         // Converts to the cartesian plane
                         let trans = context.transform.trans(
                             x as f64 * map.get_tile_width() as f64 - camera.get_x() as f64,
                             y as f64 * map.get_tile_height() as f64 - camera.get_y() as f64,
                         );
-
-                        //piston_graphics::image::Image::new()
 
                         tile_img.src_rect(tex_rect).draw(
                             map.get_tile_sheet(),
